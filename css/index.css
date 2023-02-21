@@ -1,0 +1,19 @@
+* {
+    font-size: 15px;
+}
+
+.line {
+    height: 69px;
+}
+
+td {
+    border: 10px solid white;
+}
+
+td p {
+    width: 75px;
+}
+
+input {
+    width: 65px;
+}

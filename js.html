@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        * {
+            font-size: 15px;
+        }
+
+        .line{
+            height: 69px;
+        }
+
+        td {
+            border: 10px solid white;
+        }
+
+        td p{
+            width: 75px;
+        }
+
+        input {
+            width: 100px;
+        }
+    </style>
+    <title>计算</title>
+</head>
+
+<body>
+    <div style="width: 100%; text-align: center;">
+        <form name="myform">
+            <table align="center">
+                <tr>
+                    <th>指数</td>
+                    <th>操作数量</th>
+                    <th>买入单价</th>
+                    <th>买入手续费</th>
+                    <th>买入总费用</th>
+                    <th>买入成本</th>
+                    <th>卖出单价</th>
+                    <th>卖出手续费</th>
+                    <th>卖出总额</th>
+                    <th>盈利</th>
+                </tr>
+                <tr class="line">
+                    <td>沪指</td>
+                    <td><input type="number" name="quantityH" onblur="pointsHBlur()" /></td>
+                    <td><input type="number" name="unitPriceH" onblur="pointsHBlur()" /></td>
+                    <td>
+                        <p id="buyInFeeH"></p>
+                    </td>
+                    <td>
+                        <p id="totalBuyInFeeH"></p>
+                    </td>
+                    <td>
+                        <p id="costOfBuyingH"></p>
+                    </td>
+                    <td><input type="number" name="pointsH" onblur="pointsHBlur()" /></td>
+                    <td>
+                        <p id="sellingFeeH"></p>
+                    </td>
+                    <td>
+                        <p id="totalSellH"></p>
+                    </td>
+                    <td>
+                        <p id="profitH"></p>
+                    </td>
+                </tr>
+                <tr class="line">
+                    <td>深指</td>
+                    <td><input type="number" name="quantityS" onblur="pointsSBlur()" /></td>
+                    <td><input type="number" name="unitPriceS" onblur="pointsSBlur()" /></td>
+                    <td>
+                        <p id="buyInFeeS"></p>
+                    </td>
+                    <td>
+                        <p id="totalBuyInFeeS"></p>
+                    </td>
+                    <td>
+                        <p id="costOfBuyingS"></p>
+                    </td>
+                    <td><input type="number" name="pointsS" onblur="pointsSBlur()" /></td>
+                    <td>
+                        <p id="sellingFeeS"></p>
+                    </td>
+                    <td>
+                        <p id="totalSellS"></p>
+                    </td>
+                    <td>
+                        <p id="profitS"></p>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</body>
+
+</html>
+
+<script>
+
+    // 过户费
+    // 过户费率 0.00002
+    function transferFees(unitPrice, quantity){
+        var turnoverValue = turnover(unitPrice, quantity);
+        var transferFeesStr = accMul(turnoverValue, 0.00002).toFixed(2);
+        return parseFloat(transferFeesStr);
+    }
+
+    // 佣金
+    // 佣金费率 0.00025
+    function crowded(unitPrice, quantity){
+        var turnoverValue = turnover(unitPrice, quantity);
+        var crowdedStr = accMul(turnoverValue, 0.00025).toFixed(2);
+        var crowded = parseFloat(crowdedStr);
+        if (crowded < 5){
+            crowded = 5;
+        }
+        return crowded;
+    }
+
+    // 印花税
+    // 印花税率 0.001
+    function stampDuty(unitPrice, quantity){
+        var turnoverValue = turnover(unitPrice, quantity);
+        var stampDutyStr = accMul(turnoverValue, 0.001).toFixed(2);
+        return parseFloat(stampDutyStr);
+    }
+
+    // 成交额
+    function turnover(unitPrice, quantity){
+        if (!unitPrice) {
+            unitPrice = 0;
+        }
+        if (!quantity) {
+            quantity = 0;
+        }
+        return accMul(unitPrice, quantity);
+    }
+
+    // 沪指
+    function pointsHBlur() {
+        var unitPrice = myform.unitPriceH.value;
+        var points = myform.pointsH.value;
+        var quantity = myform.quantityH.value;
+        if (!quantity) {
+            quantity = 0;
+        }
+        // 成交额
+        var turnoverValue = turnover(unitPrice, quantity);
+        // 过户费
+        var transferFeesValue = transferFees(unitPrice, quantity);
+        // 佣金
+        var crowdedValue = crowded(unitPrice, quantity);
+        // 买入手续费
+        var buyInFee = accAdd(transferFeesValue, crowdedValue);
+        // 买入总费用
+        var totalCost = accAdd(turnoverValue, buyInFee);
+        // 买入成本
+        var finalCost = accDiv(totalCost, quantity);
+        // 买入手续费
+        document.getElementById("buyInFeeH").innerHTML = buyInFee.toFixed(2);
+        // 买入总费用
+        document.getElementById("totalBuyInFeeH").innerHTML = totalCost.toFixed(2);
+        // 买入成本
+        document.getElementById("costOfBuyingH").innerHTML = finalCost.toFixed(3);
+
+        // 卖出成交额
+        var sellTurnoverValue = turnover(points, quantity);
+        // 卖出过户费
+        var sellTransferFeesValue = transferFees(points, quantity);
+        // 卖出佣金
+        var sellCrowdedValue = crowded(points, quantity);
+        // 卖出印花税
+        var sellStampDutyValue = stampDuty(points, quantity);
+        // 卖出手续费
+        var sellingFee = accAdd(sellTransferFeesValue, accAdd(sellCrowdedValue, sellStampDutyValue));
+        // 卖出总额
+        var totalSell = Subtr(sellTurnoverValue, sellingFee);
+        // 盈利
+        var profit = Subtr(totalSell, totalCost);
+        // 卖出手续费
+        document.getElementById("sellingFeeH").innerHTML = sellingFee.toFixed(2);
+        // 卖出总额
+        document.getElementById("totalSellH").innerHTML = totalSell.toFixed(2);
+        // 盈利
+        document.getElementById("profitH").innerHTML = profit.toFixed(2);
+    }
+
+    // 深指
+    function pointsSBlur() {
+        var unitPrice = myform.unitPriceS.value;
+        var points = myform.pointsS.value;
+        var quantity = myform.quantityS.value;
+        if (!quantity) {
+            quantity = 0;
+        }
+        // 成交额
+        var turnoverValue = turnover(unitPrice, quantity);
+        // 佣金
+        var crowdedValue = crowded(unitPrice, quantity);
+        // 买入总费用
+        var totalCost = accAdd(turnoverValue, crowdedValue);
+        // 买入成本
+        var finalCost = accDiv(totalCost, quantity);
+        // 买入手续费
+        document.getElementById("buyInFeeS").innerHTML = crowdedValue.toFixed(2);
+        // 买入总费用
+        document.getElementById("totalBuyInFeeS").innerHTML = totalCost.toFixed(2);
+        // 买入成本
+        document.getElementById("costOfBuyingS").innerHTML = finalCost.toFixed(3);
+
+        // 卖出成交额
+        var sellTurnoverValue = turnover(points, quantity);
+        // 卖出佣金
+        var sellCrowdedValue = crowded(points, quantity);
+        // 卖出印花税
+        var sellStampDutyValue = stampDuty(points, quantity);
+        // 卖出手续费
+        var sellingFee = accAdd(sellCrowdedValue, sellStampDutyValue);
+        // 卖出总额
+        var totalSell = Subtr(sellTurnoverValue, sellingFee);
+        // 盈利
+        var profit = Subtr(totalSell, totalCost);
+        // 卖出手续费
+        document.getElementById("sellingFeeS").innerHTML = sellingFee.toFixed(2);
+        // 卖出总额
+        document.getElementById("totalSellS").innerHTML = totalSell.toFixed(2);
+        // 盈利
+        document.getElementById("profitS").innerHTML = profit.toFixed(2);
+    }
+
+    // 除法
+    function accDiv(arg1, arg2) {
+        var t1 = 0, t2 = 0, r1, r2;
+        try { t1 = arg1.toString().split(".")[1].length } catch (e) { }
+        try { t2 = arg2.toString().split(".")[1].length } catch (e) { }
+        with (Math) {
+            r1 = Number(arg1.toString().replace(".", ""))
+            r2 = Number(arg2.toString().replace(".", ""))
+            return accMul((r1 / r2), pow(10, t2 - t1));
+        }
+    }
+    //乘法 
+    function accMul(arg1, arg2) {
+        var m = 0, s1 = arg1.toString(), s2 = arg2.toString();
+        try { m += s1.split(".")[1].length } catch (e) { }
+        try { m += s2.split(".")[1].length } catch (e) { }
+        return Number(s1.replace(".", "")) * Number(s2.replace(".", "")) / Math.pow(10, m)
+    }
+    //加法 
+    function accAdd(arg1, arg2) {
+        var r1, r2, m;
+        try { r1 = arg1.toString().split(".")[1].length } catch (e) { r1 = 0 }
+        try { r2 = arg2.toString().split(".")[1].length } catch (e) { r2 = 0 }
+        m = Math.pow(10, Math.max(r1, r2))
+        return (arg1 * m + arg2 * m) / m
+    }
+    //减法 
+    function Subtr(arg1, arg2) {
+        var r1, r2, m, n;
+        try { r1 = arg1.toString().split(".")[1].length } catch (e) { r1 = 0 }
+        try { r2 = arg2.toString().split(".")[1].length } catch (e) { r2 = 0 }
+        m = Math.pow(10, Math.max(r1, r2));
+        n = (r1 >= r2) ? r1 : r2;
+        return parseFloat(((arg1 * m - arg2 * m) / m).toFixed(n));
+    }
+</script>

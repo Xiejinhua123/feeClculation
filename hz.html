@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="./css/index.css" type="text/css" />
+    <title>H</title>
+</head>
+
+<body>
+    <div style="width: 600px; text-align: center; float: left;">
+        <p>盈利：<span id="table1profit">0</span> &nbsp;&nbsp;&nbsp;&nbsp;
+            <button type="button" onclick="addTr('table1')">add</button>
+            <input type="hidden" id="table1Line" />
+        </p>
+        <table align="center" id="table1">
+            <tr>
+                <th>操作</th>
+                <th>数量</th>
+                <th>单价</th>
+                <th>手续费</th>
+                <th>总费用</th>
+                <th>操作</th>
+            </tr>
+        </table>
+    </div>
+
+    <div style="width: 600px; text-align: center; float: left;">
+        <p>盈利：<span id="table2profit">0</span> &nbsp;&nbsp;&nbsp;&nbsp; 
+            <button type="button" onclick="addTr('table2')">add</button>
+            <input type="hidden" id="table2Line" />
+        </p>
+        <table align="center" id="table2">
+            <tr>
+                <th>操作</th>
+                <th>数量</th>
+                <th>单价</th>
+                <th>手续费</th>
+                <th>总费用</th>
+                <th>操作</th>
+            </tr>
+        </table>
+    </div>
+
+    <div style="width: 600px; text-align: center; float: left;">
+        <p>盈利：<span id="table3profit">0</span> &nbsp;&nbsp;&nbsp;&nbsp; 
+            <button type="button" onclick="addTr('table3')">add</button>
+            <input type="hidden" id="table3Line"/>
+        </p>
+        <table align="center" id="table3">
+            <tr>
+                <th>操作</th>
+                <th>数量</th>
+                <th>单价</th>
+                <th>手续费</th>
+                <th>总费用</th>
+                <th>操作</th>
+            </tr>
+        </table>
+    </div>
+
+    <script type="text/javascript" src="./js/index.js"></script>
+    <script type="text/javascript">
+
+        function addTr(tableId) {
+            var table = document.getElementById(tableId);
+            var roleId = document.getElementById(tableId+"Line").value;
+            if (roleId == null || roleId.length <= 0){
+                roleId = 1;
+            }else{
+                roleId = parseInt(roleId) + 1;
+            }
+            var row = table.insertRow(table.getElementsByTagName("tr").length);
+            row.setAttribute("class", "line");
+            row.id = tableId + roleId;
+            var td0 = row.insertCell(0);
+            td0.innerHTML = "<td><select name=\"" + tableId + "operate" + roleId + "\" onchange=\"pointsBlur('" + tableId + "', " + roleId + ")\"><option value=\"b\">买入</option><option value=\"s\">卖出</option></select></td>";
+
+            var td1 = row.insertCell(1);
+            td1.innerHTML = "<td><input type=\"number\" name=\"" + tableId + "quantity" + roleId + "\" onblur=\"pointsBlur('" + tableId + "', " + roleId + ")\"/></td>";
+
+            var td2 = row.insertCell(2);
+            td2.innerHTML = "<td><input type=\"number\" name=\"" + tableId + "unitPrice" + roleId + "\" onblur=\"pointsBlur('" + tableId + "', " + roleId + ")\" /></td>";
+
+            var td3 = row.insertCell(3);
+            td3.innerHTML = "<td><p id=\"" + tableId + "buyInFee" + roleId + "\"></p></td>";
+
+            var td4 = row.insertCell(4);
+            td4.innerHTML = "<td><p id=\"" + tableId + "totalBuyInFee" + roleId + "\"></p><input type=\"hidden\" name=\"" + tableId + "totalBuyInFeeHidden\" id=\"" + tableId + "totalBuyInFeeHidden" + roleId + "\"/></td>";
+
+            var td5 = row.insertCell(5);
+            td5.innerHTML = "<td><button type=\"button\" onclick=\"removeTr('" + tableId + "', " + roleId + ")\">-</button></td>";
+
+            document.getElementById(tableId+"Line").value = roleId;
+        }
+
+        function removeTr(tableId, roleId) {
+
+            // 总费用实际值
+            var fee = document.getElementById(tableId + "totalBuyInFeeHidden" + roleId).value;
+            var tableprofit = document.getElementById(tableId + "profit").innerText;
+            document.getElementById(tableId + "profit").innerHTML = Subtr(parseFloat(tableprofit), fee).toFixed(2);
+
+            var table = document.getElementById(tableId);
+            var rows = table.rows;
+            for (let index = 0; index < rows.length; index++) {
+                const element = rows[index];
+                if (element.id == (tableId + roleId)) {
+                    element.remove();
+                }
+            }
+        }
+
+        function pointsBlur(tableId, roleId) {
+            // 数量
+            var quantity = document.getElementsByName(tableId + 'quantity' + roleId)[0].value;
+            if (!quantity) {
+                quantity = 0;
+            }
+            // 单价
+            var unitPrice = document.getElementsByName(tableId + 'unitPrice' + roleId)[0].value;
+            // 成交额
+            var turnoverValue = turnover(unitPrice, quantity);
+            // 佣金
+            var crowdedValue = crowded(unitPrice, quantity);
+            // 过户费
+            var transferFeesValue = transferFees(unitPrice, quantity);
+            // 卖出印花税
+            var sellStampDutyValue = 0;
+            if (document.getElementsByName(tableId + 'operate' + roleId)[0].value == 's') {
+                sellStampDutyValue = stampDuty(unitPrice, quantity);
+            }
+            // 手续费
+            var buyInFee = accAdd(accAdd(crowdedValue, sellStampDutyValue), transferFeesValue);
+            // 总费用
+            var totalCost = 0;
+            if (document.getElementsByName(tableId + 'operate' + roleId)[0].value == 'b') {
+                totalCost = accAdd(turnoverValue, buyInFee);
+            } else {
+                totalCost = Subtr(turnoverValue, buyInFee);
+            }
+            // 手续费
+            document.getElementById(tableId + "buyInFee" + roleId).innerHTML = buyInFee.toFixed(2);
+            // 总费用
+            document.getElementById(tableId + "totalBuyInFee" + roleId).innerHTML = totalCost.toFixed(2);
+            if (document.getElementsByName(tableId + 'operate' + roleId)[0].value == 'b') {
+                totalCost = -totalCost;
+            }
+            // 总费用实际值
+            document.getElementById(tableId + "totalBuyInFeeHidden" + roleId).value = totalCost.toFixed(2);
+
+            // 计算总盈利
+            var allCost = document.getElementsByName(tableId + 'totalBuyInFeeHidden');
+            var tableprofit = 0;
+            for (let index = 0; index < allCost.length; index++) {
+                const element = allCost[index];
+                if (element.value == null || element.value.length <= 0) {
+                    continue;
+                }
+                tableprofit += parseFloat(element.value);
+            }
+            document.getElementById(tableId + "profit").innerHTML = tableprofit.toFixed(2);
+        }
+    </script>
+</body>
+
+</html>
